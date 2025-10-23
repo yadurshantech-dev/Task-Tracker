@@ -1,0 +1,1209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gamified Task Tracker - Yadurshan</title>
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <style>
+        /* BASE & TYPOGRAPHY */
+        :root {
+            --color-primary: #3498db;
+            --color-accent: #e74c3c;
+            --color-text: #2c3e50;
+            --color-light: #ffffff;
+            --color-glass-bg: rgba(255, 255, 255, 0.2);
+            --color-glass-border: rgba(255, 255, 255, 0.5);
+            --color-dark-text: #17202A;
+            --color-light-text: #EAECEE;
+            --color-toggle-bg: #ccc; /* NEW */
+            --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            --blur-level: 10px;
+        }
+
+        /* DARK MODE VARIABLES (NEW) */
+        .app-container.dark-mode {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--color-light-text);
+        }
+        .app-container.dark-mode :root {
+            --color-text: #EAECEE;
+            --color-dark-text: #EAECEE;
+            --color-light-text: #2c3e50;
+            --color-glass-bg: rgba(0, 0, 0, 0.2);
+            --color-glass-border: rgba(0, 0, 0, 0.5);
+            --color-toggle-bg: #555; /* NEW */
+        }
+        .app-container.dark-mode header,
+        .app-container.dark-mode .greeting h4,
+        .app-container.dark-mode .greeting p,
+        .app-container.dark-mode h2,
+        .app-container.dark-mode .task-item {
+            color: var(--color-light); /* Ensure text remains light */
+        }
+        .app-container.dark-mode .summary-stats,
+        .app-container.dark-mode #points-view .glass-card,
+        .app-container.dark-mode .stat-item p,
+        .app-container.dark-mode #points-history li {
+            color: var(--color-dark-text); /* Items that should be light in dark mode */
+        }
+        .app-container.dark-mode .priority-button {
+            color: var(--color-light);
+        }
+        .app-container.dark-mode .priority-button.selected {
+            border-color: var(--color-light);
+        }
+        .app-container.dark-mode .onboarding-card input,
+        .app-container.dark-mode .onboarding-card select,
+        .app-container.dark-mode #add-task-form .input-group input,
+        .app-container.dark-mode #add-task-form .input-group textarea {
+            background: rgba(0, 0, 0, 0.4);
+            color: var(--color-light);
+        }
+        .app-container.dark-mode #add-task-form .input-group input::placeholder,
+        .app-container.dark-mode #add-task-form .input-group textarea::placeholder {
+            color: rgba(234, 236, 238, 0.6);
+        }
+        .app-container.dark-mode .task-item {
+             background: rgba(0, 0, 0, 0.1);
+        }
+
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #a8c0ff, #3f2b96);
+            /* Blue/Purple Gradient Background */
+            overflow: hidden;
+        }
+
+        /* APP CONTAINER - Simulates the mobile device frame */
+        .app-container {
+            width: 100%;
+            max-width: 400px;
+            height: 90vh;
+            max-height: 800px;
+            border-radius: 40px;
+            box-shadow: var(--shadow-glass);
+            overflow: hidden;
+            position: relative;
+            background: var(--color-glass-bg);
+            border: 1px solid var(--color-glass-border);
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease-in-out;
+        }
+
+        /* GLASSMORHPISM UTILITY */
+        .glass-card {
+            background: var(--color-glass-bg);
+            backdrop-filter: blur(var(--blur-level));
+            -webkit-backdrop-filter: blur(var(--blur-level));
+            border-radius: 20px;
+            border: 1px solid var(--color-glass-border);
+            box-shadow: var(--shadow-glass);
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+        /* Buttons and interactive elements should glow slightly on hover or click (subtle, not overpowering) */
+        .glass-card:hover,
+        .btn-primary:hover,
+        .priority-button:hover,
+        .task-item:hover,
+        .nav-item:not(.nav-fab):hover {
+            box-shadow: var(--shadow-glass), 0 0 15px rgba(255, 255, 255, 0.5); /* Added glow */
+        }
+        .nav-fab:hover {
+             box-shadow: 0 4px 15px rgba(46, 204, 113, 0.5), 0 0 15px rgba(255, 255, 255, 0.8);
+        }
+
+
+        /* HEADER & AVATAR */
+        header {
+            padding: 25px 20px 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: var(--color-light);
+            z-index: 10;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: var(--color-light);
+            margin-right: 10px;
+            overflow: hidden;
+            border: 2px solid var(--color-light);
+        }
+
+        .avatar i {
+            font-size: 24px;
+            line-height: 36px;
+            color: var(--color-primary);
+            text-align: center;
+            display: block;
+        }
+
+        .greeting h4 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .greeting p {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        /* MAIN CONTENT AREA */
+        #main-interface {
+            flex-grow: 1;
+            position: relative;
+            overflow: hidden;
+            padding-bottom: 90px; /* Space for the floating nav */
+        }
+
+        .view-content {
+            padding: 0 20px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            transform: translateX(100%);
+            opacity: 0;
+            transition: transform 0.4s ease-out, opacity 0.4s ease-out;
+        }
+
+        .view-content.active-view {
+            transform: translateX(0);
+            opacity: 1;
+            position: relative; /* Bring active view back into document flow */
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* HOME VIEW SPECIFIC STYLES */
+        .home-summary h2 {
+            color: var(--color-light);
+            margin-bottom: 10px;
+        }
+        .summary-stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--color-dark-text);
+            padding: 15px;
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-item h3 {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--color-primary);
+        }
+        .stat-item p {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        
+        /* CIRCULAR PROGRESS (Task Completion) - Like Donut Chart in reference */
+        .progress-container {
+            width: 100px;
+            height: 100px;
+            position: relative;
+            margin: 0 auto;
+        }
+        .circular-progress {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: radial-gradient(closest-side, white 80%, transparent 80% 100%), 
+                        conic-gradient(#2ecc71 calc(var(--percentage) * 1%), #eee 0);
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--color-dark-text);
+        }
+
+
+        /* TASKS VIEW SPECIFIC STYLES */
+        .task-list {
+            padding-top: 10px;
+        }
+
+        .task-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--color-glass-border);
+            margin-bottom: 10px;
+            padding: 15px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: background 0.2s, box-shadow 0.2s;
+            color: var(--color-light-text);
+        }
+
+        .task-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .task-details {
+            display: flex;
+            align-items: center;
+        }
+
+        .task-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--color-light);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+        }
+
+        .task-icon i {
+            color: var(--color-primary);
+            font-size: 20px;
+        }
+
+        .task-info h5 {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .task-info p {
+            font-size: 12px;
+            opacity: 0.7;
+        }
+
+        .task-checkbox {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid var(--color-light-text);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .task-item.completed {
+            opacity: 0.6;
+            text-decoration: line-through;
+        }
+
+        .task-item.completed .task-checkbox {
+            background-color: #2ecc71;
+            border-color: #2ecc71;
+        }
+
+        .task-item.completed .task-checkbox i {
+            display: block;
+            color: var(--color-light);
+            font-size: 14px;
+        }
+
+        .task-checkbox i {
+            display: none;
+        }
+
+        /* POINTS VIEW */
+        #points-view .glass-card {
+            text-align: center;
+        }
+        #points-view h3 {
+            color: var(--color-dark-text);
+            margin-bottom: 10px;
+        }
+        .points-total {
+            font-size: 48px;
+            font-weight: bold;
+            color: var(--color-primary);
+            margin-bottom: 5px;
+        }
+        .role-bonus {
+            font-size: 14px;
+            color: var(--color-dark-text);
+        }
+
+        /* ADD TASK VIEW (Left Panel in Reference) */
+        #add-task-view h2 {
+            color: var(--color-light);
+            margin-bottom: 20px;
+            padding-top: 10px;
+        }
+        #add-task-form .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: var(--color-light);
+            opacity: 0.8;
+        }
+        #add-task-form .input-group input,
+        #add-task-form .input-group textarea {
+            width: 100%;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(2px);
+            color: var(--color-dark-text);
+            margin-bottom: 15px;
+        }
+        #add-task-form .input-group input::placeholder,
+        #add-task-form .input-group textarea::placeholder {
+            color: rgba(44, 62, 80, 0.6);
+        }
+
+        .priority-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .priority-button {
+            padding: 10px;
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 12px;
+            font-weight: 600;
+            border: 2px solid transparent;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--color-light);
+        }
+        .priority-button.selected {
+            border-color: var(--color-light);
+            background: var(--color-primary);
+        }
+        .priority-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* --- NEW SETTINGS VIEW STYLES --- */
+        #settings-view h2 {
+            color: var(--color-light);
+            margin-bottom: 20px;
+        }
+        .settings-option {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 10px;
+            border-bottom: 1px solid var(--color-glass-border);
+            cursor: pointer;
+            transition: background 0.2s;
+            color: var(--color-dark-text); /* Use dark text for light card */
+        }
+        .settings-option:last-child {
+            border-bottom: none;
+        }
+        .settings-option-text {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        /* Theme Toggle Switch */
+        .theme-switch {
+            position: relative;
+            display: inline-block;
+            width: 45px;
+            height: 25px;
+        }
+        .theme-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--color-toggle-bg);
+            transition: .4s;
+            border-radius: 25px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 17px;
+            width: 17px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: var(--color-primary);
+        }
+        input:checked + .slider:before {
+            transform: translateX(20px);
+        }
+
+
+        /* BOTTOM NAVIGATION BAR (Floating) */
+        #bottom-nav {
+            position: absolute;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 95%; /* Adjusted width for more space */
+            max-width: 360px;
+            height: 70px;
+            border-radius: 35px;
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: var(--shadow-glass);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 20;
+            border: 1px solid var(--color-glass-border);
+        }
+
+        .nav-item {
+            flex-grow: 1;
+            text-align: center;
+            color: var(--color-light);
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s;
+            position: relative;
+        }
+
+        .nav-item i {
+            font-size: 24px;
+            margin-bottom: 3px;
+        }
+
+        .nav-item.active {
+            color: var(--color-dark-text);
+            font-weight: 700;
+        }
+
+        .nav-item:not(.nav-fab):hover {
+            color: var(--color-primary);
+        }
+
+        /* Floating Action Button (FAB) */
+        .nav-fab {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(45deg, #1abc9c, #2ecc71);
+            border-radius: 50%;
+            box-shadow: 0 4px 15px rgba(46, 204, 113, 0.5);
+            transform: translateY(-10px);
+            transition: transform 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 5px;
+            /* Added margin to keep space */
+        }
+
+        .nav-fab i {
+            color: var(--color-light);
+            font-size: 30px;
+            margin: 0;
+        }
+        .nav-fab span {
+            display: none;
+        }
+        .nav-fab:active {
+            transform: translateY(-8px) scale(0.95);
+        }
+
+        /* ONBOARDING SCREEN STYLES */
+        #onboarding-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #a8c0ff, #3f2b96);
+            z-index: 30;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+            transition: all 0.5s ease-out;
+        }
+
+        .onboarding-card {
+            background: var(--color-glass-bg);
+            backdrop-filter: blur(var(--blur-level));
+            -webkit-backdrop-filter: blur(var(--blur-level));
+            border-radius: 30px;
+            padding: 30px;
+            text-align: center;
+            max-width: 300px;
+            width: 100%;
+        }
+
+        .onboarding-card h1 {
+            color: var(--color-light);
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+
+        .onboarding-card label {
+            display: block;
+            text-align: left;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            color: var(--color-light);
+            opacity: 0.8;
+            font-weight: 600;
+        }
+
+        .onboarding-card input, .onboarding-card select {
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            border: none;
+            background: rgba(255, 255, 255, 0.4);
+            color: var(--color-dark-text);
+            font-size: 16px;
+        }
+        .onboarding-card select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232c3e50'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            padding-right: 30px;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 12px;
+            margin-top: 25px;
+            border: none;
+            border-radius: 10px;
+            background: #2ecc71;
+            color: var(--color-light);
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.2s;
+        }
+
+        .btn-primary:hover {
+            background: #27ae60;
+            transform: translateY(-2px);
+        }
+
+        /* HIDDEN UTILITY */
+        .hidden {
+            display: none !important;
+        }
+
+        /* ANIMATION UTILITY */
+        .fade-out {
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(-100%);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+
+        <section id="onboarding-screen">
+            <div class="onboarding-card">
+                <h1>Welcome to Task Tracker!</h1>
+                <p style="color: var(--color-light); opacity: 0.9; margin-bottom: 15px;">Earn points for every win!
+                    <strong>This is created by Yadurshan with ❤️</strong></p>
+
+                <form id="onboarding-form">
+                    <label for="user-name">Your Name</label>
+                    <input type="text" id="user-name" placeholder="E.g., Yadurshan" required>
+
+                    <label for="user-role">Your Role (Points Multiplier!)</label>
+      
+                    <select id="user-role" required>
+                        <option value="" disabled selected>Select a Role</option>
+                        <option value="Student">Student (x1.5)</option>
+                        <option value="Developer">Developer (x1.2)</option>
+   
+                        <option value="Creator">Creator (x1.8)</option>
+                        <option value="Explorer">Explorer (x1.0)</option>
+                    </select>
+
+                    <button type="submit" class="btn-primary">Unlock Tracker</button>
+        
+                </form>
+            </div>
+        </section>
+
+        <main id="main-interface" class="hidden">
+            <header>
+                <div class="user-profile">
+                    <div class="avatar"><i class='bx bxs-user'></i></div>
+          
+                    <div class="greeting">
+                        <p>Good Day</p>
+                        <h4 id="display-user-name">User H.</h4>
+                    </div>
+                </div>
+  
+                <div class="points-display" style="color: var(--color-light); font-size: 20px;
+                    font-weight: bold;">
+                    <i class='bx bxs-coin' style="color: gold;"></i> <span id="header-points-total">0</span>
+                </div>
+            </header>
+
+            <div class="view-content active-view" id="home-view">
+                <div class="home-summary">
+             
+                    <h2>Task Progress</h2>
+                    <div class="glass-card summary-stats">
+                        <div class="stat-item">
+                            <h3 id="tasks-remaining-count">0</h3>
+                
+                            <p>Remaining</p>
+                        </div>
+                        <div class="progress-container">
+                            <div class="circular-progress" id="completion-progress" style="--percentage: 0;"></div>
+       
+                            <div class="progress-text" id="progress-text">0%</div>
+                        </div>
+                        <div class="stat-item">
+                            
+                            <h3 id="tasks-completed-count">0</h3>
+                            <p>Completed</p>
+                        </div>
+                    </div>
+                </div>
+           
+                <h2 style="color: var(--color-light); margin-top: 20px;
+                    margin-bottom: 10px;">Quick Actions</h2>
+                <div class="glass-card" style="display: flex;
+                    justify-content: space-around; color: var(--color-dark-text);">
+                    <div class="stat-item" style="cursor: pointer;" onclick="document.querySelector('.nav-item[data-view=\'add-task-view\']').click()">
+                        <i class='bx bx-task' style="font-size: 30px;
+                            color: var(--color-accent);"></i>
+                        <p>Add Task</p>
+                    </div>
+                    <div class="stat-item" style="cursor: pointer;" onclick="document.querySelector('.nav-item[data-view=\'points-view\']').click()">
+                        <i class='bx bx-trophy' style="font-size: 30px;
+                            color: gold;"></i>
+                        <p>View Points</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="view-content" id="tasks-view">
+            
+                <h2 style="color: var(--color-light); margin-bottom: 10px;">All Active Tasks</h2>
+                <div class="task-list" id="active-tasks-list">
+                    <p style="color: var(--color-light);
+                        opacity: 0.7; text-align: center; padding: 50px;">
+                        No tasks yet. Tap the '+' to get started!
+                    </p>
+                </div>
+            </div>
+
+            <div class="view-content" id="user-info-view">
+ 
+                <h2 style="color: var(--color-light);
+                    margin-bottom: 20px;">Profile</h2>
+                <div class="glass-card" style="text-align: center;
+                    color: var(--color-dark-text);">
+                    <div class="avatar" style="width: 80px;
+                        height: 80px; margin: 0 auto 10px; border-width: 3px;">
+                        <i class='bx bxs-user' style="font-size: 48px;
+                            line-height: 74px;"></i>
+                    </div>
+                    <h3 id="profile-name-display" style="margin-bottom: 5px;">User Name</h3>
+                    <p id="profile-role-display" style="font-weight: 600;">Selected Role</p>
+                    <p style="font-size: 14px;
+                        opacity: 0.8; margin-top: 10px;">Goal: Complete 5 tasks this week!</p>
+                </div>
+            </div>
+
+            <div class="view-content" id="points-view">
+                <div class="glass-card">
+                    <h3>Total Points Earned</h3>
+           
+                    <div class="points-total" id="points-total-display">0</div>
+                    <p class="role-bonus" id="role-multiplier-display">Role Bonus: x1.0</p>
+                </div>
+
+                <div class="glass-card" style="margin-top: 20px;">
+                    <h3>Recent Point Gains</h3>
+        
+                    <ul id="points-history" style="list-style: none; padding: 0; text-align: left;
+                        color: var(--color-dark-text);">
+                        <li style="font-size: 14px;
+                            opacity: 0.7;">No points earned yet.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="view-content" id="add-task-view">
+                <h2>Add New Task</h2>
+                
+                <form id="add-task-form">
+                    <div class="input-group">
+                        <label for="task-title">Title</label>
+                        <input type="text" id="task-title" placeholder="E.g., Finish UI/UX Design" required>
+                    </div>
+  
+                    <div class="input-group">
+                        <label for="task-description">Description (Optional)</label>
+                        <textarea id="task-description" rows="2" placeholder="Brief details about the task..."></textarea>
+                    </div>
+    
+                    <div class="input-group">
+                        <label>Priority (Select to assign points)</label>
+                        <div class="priority-grid">
+                            <div class="priority-button" 
+                                data-points="10" data-priority="Low">Low (10 pts)</div>
+                            <div class="priority-button selected" data-points="25" data-priority="Medium">Medium (25 pts)</div>
+                            <div class="priority-button" data-points="50" data-priority="High">High (50 pts)</div>
+                        </div>
+      
+                    </div>
+                    <button type="submit" class="btn-primary" style="margin-top: 50px;">Add Task</button>
+                </form>
+            </div>
+            
+            <div class="view-content" id="settings-view">
+                <h2>Settings</h2>
+                <div class="glass-card" style="color: var(--color-dark-text);">
+                    <div class="settings-option">
+                        <span class="settings-option-text"><i class='bx bxs-sun' style="margin-right: 5px;"></i> Dark Mode</span>
+                        <label class="theme-switch">
+                            <input type="checkbox" id="dark-mode-toggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="settings-option" id="logout-button">
+                        <span class="settings-option-text" style="color: var(--color-accent);"><i class='bx bx-log-out' style="margin-right: 5px;"></i> Logout</span>
+                        <i class='bx bx-chevron-right' style="color: var(--color-accent);"></i>
+                    </div>
+                </div>
+            </div>
+            </main>
+
+        <nav id="bottom-nav" class="hidden">
+            <div class="nav-item active" 
+                data-view="home-view">
+                <i class='bx bxs-home-alt-2'></i>
+                <span>Home</span>
+            </div>
+            <div class="nav-item" data-view="tasks-view">
+                <i class='bx bxs-check-square'></i>
+                <span>Tasks</span>
+      
+            </div>
+            <div class="nav-item nav-fab" data-view="add-task-view">
+                <i class='bx bx-plus'></i>
+                <span>Add</span>
+            </div>
+            <div class="nav-item" data-view="points-view">
+                <i class='bx bxs-coin'></i>
+ 
+                <span>Points</span>
+            </div>
+            <div class="nav-item" data-view="settings-view"> <i class='bx bxs-cog'></i>
+                <span>Settings</span>
+            </div>
+        </nav>
+
+    </div>
+
+ 
+    <script>
+        // GLOBAL STATE MANAGEMENT
+        const state = {
+            userName: '',
+            userRole: '',
+            roleMultiplier: 1.0,
+            totalPoints: 0,
+            tasks: [],
+            pointsHistory: [],
+            isDarkMode: false, // NEW STATE VARIABLE
+            currentViewId: 'home-view' // NEW STATE VARIABLE
+        };
+        // DOM ELEMENTS
+        const appContainer = document.querySelector('.app-container');
+        const onboardingScreen = document.getElementById('onboarding-screen');
+        const mainInterface = document.getElementById('main-interface');
+        const bottomNav = document.getElementById('bottom-nav');
+        const onboardingForm = document.getElementById('onboarding-form');
+        const tasksList = document.getElementById('active-tasks-list');
+        const addTaskForm = document.getElementById('add-task-form');
+        const navItems = document.querySelectorAll('.nav-item');
+        const darkModeToggle = document.getElementById('dark-mode-toggle'); // NEW ELEMENT
+        const logoutButton = document.getElementById('logout-button'); // NEW ELEMENT
+        
+        // HOME VIEW ELEMENTS
+        const remainingCountEl = document.getElementById('tasks-remaining-count');
+        const completedCountEl = document.getElementById('tasks-completed-count');
+        const progressEl = document.getElementById('completion-progress');
+        const progressTextEl = document.getElementById('progress-text');
+        // MULTIPLIER MAP
+        const ROLE_MULTIPLIERS = {
+            'Student': 1.5,
+            'Developer': 1.2,
+            'Creator': 1.8,
+            'Explorer': 1.0
+        };
+        // --- CORE FUNCTIONS ---
+
+        function saveState() {
+            localStorage.setItem('taskTrackerState', JSON.stringify(state));
+        }
+
+        function applyTheme(isDark) {
+            state.isDarkMode = isDark;
+            if (isDark) {
+                appContainer.classList.add('dark-mode');
+            } else {
+                appContainer.classList.remove('dark-mode');
+            }
+            darkModeToggle.checked = isDark;
+            saveState();
+        }
+
+        function loadState() {
+            const savedState = localStorage.getItem('taskTrackerState');
+            if (savedState) {
+                Object.assign(state, JSON.parse(savedState));
+                applyTheme(state.isDarkMode); // Apply theme on load
+                // If user is loaded, bypass onboarding
+                if (state.userName) {
+                    onboardingScreen.classList.add('hidden');
+                    mainInterface.classList.remove('hidden');
+                    bottomNav.classList.remove('hidden');
+                    // Manually switch to the last viewed view or home
+                    document.getElementById(state.currentViewId || 'home-view').classList.add('active-view');
+                    document.querySelector(`.nav-item[data-view="${state.currentViewId || 'home-view'}"]`).classList.add('active');
+                    updateUI(); // Initial UI update
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function logout() {
+            localStorage.removeItem('taskTrackerState'); // Clear saved state
+            // Reset local state variables (optional, but good practice)
+            Object.assign(state, {
+                userName: '',
+                userRole: '',
+                roleMultiplier: 1.0,
+                totalPoints: 0,
+                tasks: [],
+                pointsHistory: [],
+                isDarkMode: false,
+                currentViewId: 'home-view'
+            });
+            applyTheme(false); // Reset to light mode
+            location.reload(); // Reload the page to show onboarding screen
+        }
+
+        function updateUI() {
+            const totalTasks = state.tasks.length;
+            const completedTasks = state.tasks.filter(t => t.completed).length;
+            const remainingTasks = totalTasks - completedTasks;
+            const completionPercentage = totalTasks > 0 ?
+                Math.round((completedTasks / totalTasks) * 100) : 0;
+
+            // 1. HEADER & PROFILE
+            document.getElementById('display-user-name').textContent = state.userName;
+            document.getElementById('profile-name-display').textContent = state.userName;
+            document.getElementById('profile-role-display').textContent = `Role: ${state.userRole}`;
+            document.getElementById('header-points-total').textContent = state.totalPoints;
+            document.getElementById('points-total-display').textContent = state.totalPoints;
+            document.getElementById('role-multiplier-display').textContent = `Role Bonus: x${state.roleMultiplier.toFixed(1)}`;
+            // 2. HOME VIEW STATS
+            remainingCountEl.textContent = remainingTasks;
+            completedCountEl.textContent = completedTasks;
+            progressEl.style.setProperty('--percentage', completionPercentage);
+            progressTextEl.textContent = `${completionPercentage}%`;
+
+            // 3. TASKS VIEW
+            renderTasks();
+            // 4. POINTS VIEW
+            renderPointsHistory();
+
+            saveState();
+        }
+
+        function renderTasks() {
+            const activeTasks = state.tasks.filter(t => !t.completed);
+            tasksList.innerHTML = '';
+            
+            if (activeTasks.length === 0) {
+                tasksList.innerHTML = `<p style="color: var(--color-light); opacity: 0.7; text-align: center; padding: 50px;">
+                    No tasks remaining!
+                    Great job! 🎉
+                </p>`;
+            } else {
+                activeTasks.forEach(task => {
+                    tasksList.appendChild(createTaskElement(task));
+                });
+            }
+        }
+
+        function createTaskElement(task) {
+            const item = document.createElement('div');
+            item.className = `task-item ${task.completed ? 'completed' : ''}`;
+            item.setAttribute('data-id', task.id);
+
+            const priorityColor = task.priority === 'High' ?
+                '#e74c3c' : (task.priority === 'Medium' ? '#f39c12' : '#3498db');
+            
+            item.innerHTML = `
+                <div class="task-details">
+                    <div class="task-icon" style="background-color: ${priorityColor};">
+                        <i class='bx bx-target-lock' style="color: white;"></i>
+                    </div>
+ 
+                    <div class="task-info">
+                        <h5>${task.title}</h5>
+                        <p style="font-size: 10px; font-weight: 700;">${task.priority} Priority - ${task.basePoints} Pts</p>
+                    </div>
+    
+                </div>
+                <div class="task-checkbox">
+                    <i class='bx bx-check'></i>
+                </div>
+            `;
+            item.addEventListener('click', () => toggleTaskCompletion(task.id));
+            return item;
+        }
+        
+        function renderPointsHistory() {
+            const historyList = document.getElementById('points-history');
+            historyList.innerHTML = '';
+
+            if (state.pointsHistory.length === 0) {
+                historyList.innerHTML = `<li style="font-size: 14px; opacity: 0.7;">No points earned yet.</li>`;
+                return;
+            }
+
+            state.pointsHistory.slice(-5).reverse().forEach(entry => { // Show last 5
+                const listItem = document.createElement('li');
+                listItem.style.padding = '8px 0';
+                listItem.style.borderBottom = '1px dashed #ccc';
+                listItem.innerHTML = `
+     
+                    <span style="font-weight: 700; color: #2ecc71;">+${entry.points} pts</span> for completing "${entry.taskTitle}" 
+                    <span style="float: right; font-size: 12px; opacity: 0.8;">${new Date(entry.timestamp).toLocaleTimeString()}</span>
+                `;
+                historyList.appendChild(listItem);
+            });
+        }
+
+
+        // --- EVENT HANDLERS ---
+
+        onboardingForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const nameInput = document.getElementById('user-name').value.trim();
+            const roleSelect = document.getElementById('user-role');
+            const role = roleSelect.value;
+            
+        
+            if (!nameInput || !role) return;
+
+            state.userName = nameInput;
+            state.userRole = role;
+            state.roleMultiplier = ROLE_MULTIPLIERS[role] || 1.0;
+            state.currentViewId = 'home-view';
+
+            onboardingScreen.classList.add('fade-out');
+            setTimeout(() => {
+                onboardingScreen.classList.add('hidden');
+      
+                mainInterface.classList.remove('hidden');
+                bottomNav.classList.remove('hidden');
+                updateUI();
+            }, 400); // Wait for fade-out animation
+        });
+        
+        // Navigation Handler
+        navItems.forEach(item => {
+            item.addEventListener('click', () => {
+                const targetViewId = item.getAttribute('data-view');
+                if (!targetViewId) return;
+
+                // 1. Update Navigation Visuals and State
+                navItems.forEach(nav => nav.classList.remove('active'));
+                item.classList.add('active');
+                state.currentViewId = targetViewId; // Save current view
+
+                // 2. Switch View Content
+                document.querySelectorAll('.view-content').forEach(view => {
+                    view.classList.remove('active-view');
+                });
+        
+                document.getElementById(targetViewId).classList.add('active-view');
+                
+                // Ensure UI is updated on view switch
+                updateUI();
+            });
+        });
+        
+        // Dark Mode Toggle Handler (NEW)
+        darkModeToggle.addEventListener('change', (e) => {
+            applyTheme(e.target.checked);
+        });
+
+        // Logout Button Handler (NEW)
+        logoutButton.addEventListener('click', logout);
+
+
+        // Add Task Form Handler
+        let selectedPoints = 25;
+        // Default to Medium
+
+        document.querySelectorAll('.priority-button').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.priority-button').forEach(b => b.classList.remove('selected'));
+                this.classList.add('selected');
+                selectedPoints = parseInt(this.getAttribute('data-points'));
+            });
+        });
+        addTaskForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const title = document.getElementById('task-title').value.trim();
+            const description = document.getElementById('task-description').value.trim();
+            const priority = document.querySelector('.priority-button.selected').getAttribute('data-priority');
+            const basePoints = selectedPoints;
+
+            if (!title) return;
+
+           
+            const newTask = {
+                id: Date.now(), // Simple unique ID
+                title,
+                description,
+                priority,
+                basePoints,
+           
+                completed: false
+            };
+
+            state.tasks.push(newTask);
+            
+            // Reset form and switch to Home view
+            addTaskForm.reset();
+            document.querySelector('.priority-button[data-points="25"]').click(); // Reset priority to medium
+          
+            document.querySelector('.nav-item[data-view="home-view"]').click();
+            updateUI();
+        });
+
+        function toggleTaskCompletion(taskId) {
+            const taskIndex = state.tasks.findIndex(t => t.id === taskId);
+            if (taskIndex === -1) return;
+
+            const task = state.tasks[taskIndex];
+            if (task.completed) {
+                // Not allowing un-completion for this demo's flow
+                console.warn('Cannot un-complete task in this version.');
+                return;
+            }
+
+            task.completed = true;
+            // Calculate final points
+            const pointsEarned = Math.round(task.basePoints * state.roleMultiplier);
+            state.totalPoints += pointsEarned;
+            
+            // Add to history
+            state.pointsHistory.push({
+                taskTitle: task.title,
+                points: pointsEarned,
+                timestamp: Date.now()
+            });
+            // Visually mark as complete immediately
+            const taskElement = document.querySelector(`.task-item[data-id="${taskId}"]`);
+            if(taskElement) {
+                taskElement.classList.add('completed');
+                // Remove the element after a brief animation delay for a smooth effect
+                setTimeout(() => {
+                    taskElement.style.opacity = '0';
+                    taskElement.style.transform = 'scale(0.9)';
+                    setTimeout(() => {
+    
+                        updateUI(); // Re-render to fully remove it from the active list
+                        // Switch to Home view after completion for a visual reward moment
+                        document.querySelector('.nav-item[data-view="home-view"]').click();
+           
+                    }, 300);
+                }, 150);
+            } else {
+                updateUI();
+                // Fallback re-render
+            }
+        }
+
+
+        // INITIALIZE APP
+        document.addEventListener('DOMContentLoaded', () => {
+            // Attempt to load existing user data
+            const userExists = loadState();
+
+            if (!userExists) {
+          
+                // If no data, ensure we are on the onboarding screen
+                onboardingScreen.classList.remove('hidden', 'fade-out');
+                mainInterface.classList.add('hidden');
+                bottomNav.classList.add('hidden');
+            }
+            
+           
+            // Set default active priority on add task screen
+            document.querySelector('.priority-button[data-points="25"]').click();
+        });
+    </script>
+
+</body>
+</html>
